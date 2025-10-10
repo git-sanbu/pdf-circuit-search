@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(test:*)",
+      "Bash(chmod:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
