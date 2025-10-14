@@ -33,10 +33,6 @@
 
 ### 1. 准备PDF文件
 
-从网盘下载4个PDF文件：
-```
-https://mega.nz/folder/OAVghZgC#IE2fw3wD9DoSLkPElhvcnQ
-```
 
 将PDF文件放入：
 ```bash
