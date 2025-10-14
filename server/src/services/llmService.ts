@@ -1,7 +1,14 @@
 import OpenAI from 'openai';
+import dotenv from 'dotenv';
+
+// Ensure dotenv is loaded before initializing OpenAI client
+dotenv.config();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3',
+  timeout: 90000, // 90 seconds timeout for API calls
+  maxRetries: 2, // Retry up to 2 times on failure
 });
 
 export interface SynonymRequest {

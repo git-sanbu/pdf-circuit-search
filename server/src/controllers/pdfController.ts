@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { dbService } from '../services/database.js';
 import { pdfParser } from '../services/pdfParser.js';
+import { ocrService } from '../services/ocrService.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
@@ -55,7 +56,7 @@ export class PDFController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Length', stat.size);
-      res.setHeader('Content-Disposition', `inline; filename="${pdf.filename}"`);
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(pdf.filename)}`);
       res.setHeader('Accept-Ranges', 'bytes');
 
       const fileStream = createReadStream(filepath);
@@ -72,6 +73,8 @@ export class PDFController {
   async indexPDF(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const { enableOCR = true } = req.body; // 允许客户端控制是否使用 OCR
+
       const pdf = dbService.getPDFById(id);
 
       if (!pdf) {
@@ -82,20 +85,66 @@ export class PDFController {
         return res.json({ success: true, message: 'PDF already indexed', segmentCount: 0 });
       }
 
-      // 解析PDF并提取文本
       console.log(`Indexing PDF: ${pdf.filename}`);
-      const segments = await pdfParser.parsePDF(id, pdf.filepath);
 
-      // 保存到数据库
+      // 步骤 1: OCR 预处理（如果启用）
+      let pdfPathToProcess = pdf.filepath;
+      let ocrProcessed = false;
+
+      if (enableOCR) {
+        console.log('Running OCR preprocessing...');
+        try {
+          const ocrOptions = {
+            enabled: true,
+            language: process.env.OCR_LANGUAGE || 'eng+chi_sim',
+            deskew: process.env.OCR_DESKEW !== 'false',
+            rotatePages: process.env.OCR_ROTATE_PAGES !== 'false',
+            skipText: process.env.OCR_SKIP_TEXT !== 'false',
+          };
+
+          const processedPath = await ocrService.preprocessPDF(
+            pdf.filepath,
+            undefined,
+            ocrOptions
+          );
+
+          // 如果 OCR 生成了新文件，使用它
+          if (processedPath !== pdf.filepath) {
+            pdfPathToProcess = processedPath;
+            ocrProcessed = true;
+            console.log('OCR preprocessing successful');
+          }
+        } catch (ocrError) {
+          console.warn('OCR preprocessing failed, continuing with original file:', ocrError);
+        }
+      }
+
+      // 步骤 2: 解析PDF并提取文本
+      console.log('Parsing PDF and extracting text...');
+      const segments = await pdfParser.parsePDF(id, pdfPathToProcess);
+
+      // 步骤 3: 保存到数据库
       dbService.saveTextSegments(segments);
       dbService.updatePDFIndexStatus(id, true);
 
       console.log(`Indexed ${segments.length} segments from ${pdf.filename}`);
 
+      // 步骤 4: 清理临时文件（如果有）
+      if (ocrProcessed && pdfPathToProcess !== pdf.filepath) {
+        try {
+          // 可选：保留 OCR 处理后的文件，或删除它
+          // await fs.unlink(pdfPathToProcess);
+          console.log('Keeping OCR-processed file for future use');
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup OCR temporary file:', cleanupError);
+        }
+      }
+
       res.json({
         success: true,
         message: 'PDF indexed successfully',
-        segmentCount: segments.length
+        segmentCount: segments.length,
+        ocrProcessed,
       });
     } catch (error) {
       console.error('Index PDF error:', error);

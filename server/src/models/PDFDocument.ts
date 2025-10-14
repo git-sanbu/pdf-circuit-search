@@ -8,6 +8,10 @@ export interface PDFDocument {
   uploadedAt: Date;
   indexed: boolean;
   thumbnail?: string;
+  fileHash?: string;
+  lastModified?: Date;
+  ocrProcessed?: boolean;
+  ocrProcessedAt?: Date;
 }
 
 export interface TextSegment {

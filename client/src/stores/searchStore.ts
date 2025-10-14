@@ -24,16 +24,18 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   navigateNext: () => {
     const { searchResult, currentMatchIndex } = get();
     if (!searchResult) return;
-    const nextIndex = (currentMatchIndex + 1) % searchResult.totalMatches;
+    const totalMatches = searchResult.totalMatchesIncludingOCR || searchResult.totalMatches;
+    const nextIndex = (currentMatchIndex + 1) % totalMatches;
     set({ currentMatchIndex: nextIndex });
   },
 
   navigatePrev: () => {
     const { searchResult, currentMatchIndex } = get();
     if (!searchResult) return;
+    const totalMatches = searchResult.totalMatchesIncludingOCR || searchResult.totalMatches;
     const prevIndex =
       currentMatchIndex === 0
-        ? searchResult.totalMatches - 1
+        ? totalMatches - 1
         : currentMatchIndex - 1;
     set({ currentMatchIndex: prevIndex });
   },

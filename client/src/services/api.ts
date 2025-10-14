@@ -30,14 +30,21 @@ export const searchApi = {
       pdfId,
       keyword,
       useSynonyms,
+    }, {
+      // Increase timeout for synonym expansion (LLM calls can take longer)
+      timeout: useSynonyms ? 120000 : 30000,
     }),
 };
 
 export const llmApi = {
   getSynonyms: (keyword: string, language = 'both', domain = 'automotive') =>
-    api.post<ApiResponse<any>>('/llm/synonyms', { keyword, language, domain }),
+    api.post<ApiResponse<any>>('/llm/synonyms', { keyword, language, domain }, {
+      timeout: 120000, // 2 minutes for LLM calls
+    }),
   askQuestion: (pdfId: string, question: string) =>
-    api.post<ApiResponse<any>>('/llm/qa', { pdfId, question }),
+    api.post<ApiResponse<any>>('/llm/qa', { pdfId, question }, {
+      timeout: 120000, // 2 minutes for LLM calls
+    }),
 };
 
 export default api;

@@ -132,9 +132,9 @@ export default function SearchPanel({ pdfId }: SearchPanelProps) {
             <div className="mb-4 pb-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-gray-700">
-                  Found {searchResult.totalMatches} result{searchResult.totalMatches !== 1 ? 's' : ''}
+                  Found {searchResult.totalMatchesIncludingOCR || searchResult.totalMatches} result{(searchResult.totalMatchesIncludingOCR || searchResult.totalMatches) !== 1 ? 's' : ''}
                 </p>
-                {searchResult.totalMatches > 0 && (
+                {(searchResult.totalMatchesIncludingOCR || searchResult.totalMatches) > 0 && (
                   <button
                     onClick={handleNextClick}
                     className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
@@ -144,6 +144,18 @@ export default function SearchPanel({ pdfId }: SearchPanelProps) {
                   </button>
                 )}
               </div>
+
+              {/* Show breakdown of PDF vs OCR results */}
+              {(searchResult.totalMatches > 0 || (searchResult.ocrMatches && searchResult.ocrMatches > 0)) && (
+                <div className="text-xs text-gray-600 mb-2">
+                  {searchResult.totalMatches > 0 && (
+                    <span className="mr-3">📄 PDF Text: {searchResult.totalMatches}</span>
+                  )}
+                  {searchResult.ocrMatches && searchResult.ocrMatches > 0 && (
+                    <span>🔍 OCR: {searchResult.ocrMatches}</span>
+                  )}
+                </div>
+              )}
 
               {searchResult.expandedKeywords && searchResult.expandedKeywords.length > 0 && (
                 <div className="mt-2">
@@ -166,58 +178,133 @@ export default function SearchPanel({ pdfId }: SearchPanelProps) {
             </div>
 
             {/* Results List */}
-            {searchResult.totalMatches === 0 ? (
+            {(searchResult.totalMatchesIncludingOCR || searchResult.totalMatches) === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <FileText className="w-12 h-12 mb-3" />
                 <p className="text-sm">No matches found</p>
                 <p className="text-xs text-gray-400 mt-1">Try different keywords</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {searchResult.results.map((result, index) => (
-                  <div
-                    key={result.segment.id}
-                    onClick={() => handleResultClick(index)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      index === currentMatchIndex
-                        ? 'bg-blue-50 border-blue-500 shadow-sm'
-                        : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded ${
+              <div className="space-y-4">
+                {/* PDF Text Results */}
+                {searchResult.results.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                      📄 PDF Text Matches
+                    </h3>
+                    <div className="space-y-2">
+                      {searchResult.results.map((result, index) => (
+                        <div
+                          key={result.segment.id}
+                          onClick={() => handleResultClick(index)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
                             index === currentMatchIndex
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-700'
+                              ? 'bg-blue-50 border-blue-500 shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
                           }`}
                         >
-                          Page {result.segment.pageNumber}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {result.segment.type}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {Math.round(result.relevance * 100)}% match
-                      </span>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                  index === currentMatchIndex
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-200 text-gray-700'
+                                }`}
+                              >
+                                Page {result.segment.pageNumber}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {result.segment.type}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {Math.round(result.relevance * 100)}% match
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-gray-700 line-clamp-3">
+                            {result.highlightText || result.segment.text}
+                          </p>
+
+                          {index === currentMatchIndex && (
+                            <div className="mt-2 pt-2 border-t border-blue-200">
+                              <p className="text-xs text-blue-600 flex items-center gap-1">
+                                <ChevronRight className="w-3 h-3" />
+                                Currently viewing
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-
-                    <p className="text-sm text-gray-700 line-clamp-3">
-                      {result.highlightText || result.segment.text}
-                    </p>
-
-                    {index === currentMatchIndex && (
-                      <div className="mt-2 pt-2 border-t border-blue-200">
-                        <p className="text-xs text-blue-600 flex items-center gap-1">
-                          <ChevronRight className="w-3 h-3" />
-                          Currently viewing
-                        </p>
-                      </div>
-                    )}
                   </div>
-                ))}
+                )}
+
+                {/* OCR Results */}
+                {searchResult.ocrResults && searchResult.ocrResults.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                      🔍 OCR Matches
+                    </h3>
+                    <div className="space-y-2">
+                      {searchResult.ocrResults.map((ocrResult, pageIdx) => (
+                        <div
+                          key={`ocr-${ocrResult.pageNumber}`}
+                          onClick={() => handleResultClick(searchResult.results.length + pageIdx)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            searchResult.results.length + pageIdx === currentMatchIndex
+                              ? 'bg-green-50 border-green-500 shadow-sm'
+                              : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                  searchResult.results.length + pageIdx === currentMatchIndex
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-200 text-gray-700'
+                                }`}
+                              >
+                                Page {ocrResult.pageNumber}
+                              </span>
+                              <span className="text-xs text-gray-500">OCR</span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {ocrResult.matches.length} match{ocrResult.matches.length !== 1 ? 'es' : ''}
+                            </span>
+                          </div>
+
+                          <div className="text-sm text-gray-700">
+                            {ocrResult.matches.slice(0, 3).map((match, idx) => (
+                              <div key={idx} className="mb-1">
+                                <span className="bg-yellow-200 px-1">"{match.text}"</span>
+                                <span className="text-xs text-gray-500 ml-2">
+                                  ({Math.round(match.confidence * 100)}% confidence)
+                                </span>
+                              </div>
+                            ))}
+                            {ocrResult.matches.length > 3 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                +{ocrResult.matches.length - 3} more matches
+                              </p>
+                            )}
+                          </div>
+
+                          {searchResult.results.length + pageIdx === currentMatchIndex && (
+                            <div className="mt-2 pt-2 border-t border-green-200">
+                              <p className="text-xs text-green-600 flex items-center gap-1">
+                                <ChevronRight className="w-3 h-3" />
+                                Currently viewing
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

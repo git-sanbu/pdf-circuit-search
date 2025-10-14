@@ -48,8 +48,8 @@ app.listen(PORT, async () => {
   console.log(`🚀 PDF Search Server running on http://localhost:${PORT}`);
   console.log('='.repeat(50));
 
-  // 初始化PDF列表
-  console.log('\n📚 Initializing PDF database...');
+  // 初始化PDF列表和 OCR
+  console.log('\n📚 Initializing system...');
   await initializePDFs();
   console.log('\n✅ Server ready!\n');
 });

@@ -28,10 +28,30 @@ export interface BBox {
   height: number;
 }
 
+export interface KeywordMatch {
+  keyword: string;
+  startIndex: number;
+  endIndex: number;
+}
+
 export interface SearchResult {
   segment: TextSegment;
   relevance: number;
   highlightText: string;
+  matches: KeywordMatch[];
+  ocrMatches?: OCRMatch[]; // For OCR results
+}
+
+export interface OCRMatch {
+  text: string;
+  confidence: number;
+  bbox?: number[] | BBox; // Support both array [x,y,w,h] and object format
+  position?: BBox; // Converted position for rendering
+}
+
+export interface OCRSearchResult {
+  pageNumber: number;
+  matches: OCRMatch[];
 }
 
 export interface SearchResponse {
@@ -39,6 +59,9 @@ export interface SearchResponse {
   expandedKeywords?: string[];
   results: SearchResult[];
   totalMatches: number;
+  ocrResults?: OCRSearchResult[];
+  ocrMatches?: number;
+  totalMatchesIncludingOCR?: number;
 }
 
 export interface ApiResponse<T> {

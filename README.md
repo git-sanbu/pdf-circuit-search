@@ -17,12 +17,19 @@
 - ✅ **同义词搜索** - 自动扩展关键词（如：油门踏板 = APS = Accelerator Pedal）
 - ✅ **文档问答** - 智能回答电路图连接性问题
 
+### OCR功能（新增）
+- ✅ **扫描版PDF支持** - 自动识别扫描版PDF并添加文本层
+- ✅ **智能预处理** - 去倾斜、自动旋转、图像增强
+- ✅ **多语言识别** - 支持中英文混合识别
+- ✅ **自动优化** - 跳过已有文本的页面，节省处理时间
+
 ## 🚀 快速开始
 
 ### 前置要求
 - Node.js 20+
 - npm
 - OpenAI API Key（用于LLM功能）
+- OCRmyPDF（可选，用于处理扫描版PDF）
 
 ### 1. 准备PDF文件
 
@@ -50,14 +57,36 @@ npm install
 cd ..
 ```
 
+### 2.5 安装 OCR 支持（可选）
+
+如果需要处理扫描版PDF，安装 OCRmyPDF：
+
+```bash
+# Ubuntu/Debian
+sudo apt install ocrmypdf tesseract-ocr-chi-sim
+
+# macOS
+brew install ocrmypdf tesseract-lang
+
+# 验证安装
+ocrmypdf --version
+```
+
+详细配置请参考：[OCR_SETUP.md](./OCR_SETUP.md)
+
 ### 3. 配置环境变量
 
-编辑 `server/.env` 文件，配置OpenAI API Key：
+编辑 `server/.env` 文件，配置 API Key 和功能：
 ```env
+# LLM配置
 OPENAI_API_KEY=your-api-key-here
 OPENAI_MODEL=gpt-4o-mini
 ENABLE_SYNONYM_SEARCH=true
 ENABLE_QA=true
+
+# OCR配置（如已安装OCRmyPDF）
+ENABLE_OCR=true
+OCR_LANGUAGE=eng+chi_sim
 ```
 
 ### 4. 启动服务
@@ -114,6 +143,21 @@ docker-compose up -d
 1. 点击右下角聊天图标
 2. 输入问题，例如："油门踏板连接到ECU的哪些针脚号？"
 3. AI会基于文档内容回答，并引用页码来源
+
+### OCR 处理扫描版PDF
+
+对于扫描版PDF（纯图像内容）：
+
+1. **自动处理**: 点击"立即索引"时，系统会自动检测并进行OCR处理
+2. **处理时间**: 根据页数，可能需要几分钟（首次）
+3. **后续索引**: OCR处理后的结果会被保存，后续索引速度快
+4. **查看日志**: 后端控制台会显示OCR处理进度
+
+**测试 OCR 功能**:
+```bash
+cd server
+npx tsx test-ocr.ts
+```
 
 ## 🏗️ 技术架构
 

@@ -7,10 +7,17 @@ export interface SearchRequest {
   useSynonyms?: boolean;
 }
 
+export interface KeywordMatch {
+  keyword: string;
+  startIndex: number;
+  endIndex: number;
+}
+
 export interface SearchResult {
   segment: TextSegment;
   relevance: number;
   highlightText: string;
+  matches: KeywordMatch[];
 }
 
 export interface SearchResponse {
@@ -38,7 +45,8 @@ export class SearchEngine {
       .map(segment => ({
         segment,
         relevance: this.calculateRelevance(segment, processedKeyword),
-        highlightText: this.highlightKeyword(segment.text, processedKeyword)
+        highlightText: this.highlightKeyword(segment.text, processedKeyword),
+        matches: this.findKeywordMatches(segment.text, processedKeyword)
       }))
       .sort((a, b) => {
         // 先按相关度降序
@@ -145,6 +153,26 @@ export class SearchEngine {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${escapedKeyword})`, 'gi');
     return text.replace(regex, '<mark>$1</mark>');
+  }
+
+  /**
+   * 查找关键词在文本中的所有匹配位置
+   */
+  private findKeywordMatches(text: string, keyword: string): KeywordMatch[] {
+    const matches: KeywordMatch[] = [];
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedKeyword, 'gi');
+
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      matches.push({
+        keyword: match[0],
+        startIndex: match.index,
+        endIndex: match.index + match[0].length
+      });
+    }
+
+    return matches;
   }
 }
 

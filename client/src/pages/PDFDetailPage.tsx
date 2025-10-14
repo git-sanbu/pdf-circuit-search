@@ -21,7 +21,54 @@ export default function PDFDetailPage() {
     enabled: !!id,
   });
 
-  const currentResult = searchResult?.results?.[currentMatchIndex];
+  // Get current result from either PDF text results or OCR results
+  const getCurrentResult = () => {
+    if (!searchResult) return undefined;
+
+    const pdfTextCount = searchResult.results.length;
+
+    // If currentMatchIndex is within PDF text results
+    if (currentMatchIndex < pdfTextCount) {
+      return searchResult.results[currentMatchIndex];
+    }
+
+    // Otherwise, it's in OCR results
+    if (searchResult.ocrResults) {
+      const ocrIndex = currentMatchIndex - pdfTextCount;
+      if (ocrIndex >= 0 && ocrIndex < searchResult.ocrResults.length) {
+        const ocrResult = searchResult.ocrResults[ocrIndex];
+
+        // Convert OCR matches bbox array [x, y, width, height] to position object
+        const convertedMatches = ocrResult.matches.map(match => ({
+          text: match.text,
+          confidence: match.confidence,
+          position: Array.isArray(match.bbox)
+            ? { x: match.bbox[0], y: match.bbox[1], width: match.bbox[2], height: match.bbox[3] }
+            : match.bbox // Already in correct format
+        }));
+
+        // Convert OCR result to SearchResult format for PDFViewer
+        return {
+          segment: {
+            id: `ocr-${ocrResult.pageNumber}`,
+            pdfId: id!,
+            pageNumber: ocrResult.pageNumber,
+            text: ocrResult.matches.map(m => m.text).join(' '),
+            type: 'text' as const,
+            bbox: convertedMatches[0]?.position || { x: 0, y: 0, width: 0, height: 0 }
+          },
+          relevance: convertedMatches[0]?.confidence || 0.95,
+          highlightText: ocrResult.matches.map(m => m.text).join(' '),
+          matches: [], // OCR doesn't have text matches
+          ocrMatches: convertedMatches // Pass OCR matches for special rendering
+        };
+      }
+    }
+
+    return undefined;
+  };
+
+  const currentResult = getCurrentResult();
 
   if (isLoading) {
     return (

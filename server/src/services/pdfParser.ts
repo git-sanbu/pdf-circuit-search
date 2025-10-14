@@ -1,8 +1,11 @@
 import fs from 'fs/promises';
 import pdfParse from 'pdf-parse';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { createRequire } from 'module';
 import { TextSegment } from '../models/PDFDocument.js';
 import { v4 as uuidv4 } from 'uuid';
+
+const require = createRequire(import.meta.url);
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 
 export class PDFParserService {
   /**
@@ -11,9 +14,12 @@ export class PDFParserService {
   async parsePDF(pdfId: string, filepath: string): Promise<TextSegment[]> {
     const dataBuffer = await fs.readFile(filepath);
 
+    // Convert Buffer to Uint8Array for pdfjs-dist
+    const data = new Uint8Array(dataBuffer);
+
     // 使用pdfjs-dist进行详细解析
     const loadingTask = pdfjsLib.getDocument({
-      data: dataBuffer,
+      data: data,
       useSystemFonts: true,
     });
     const pdfDoc = await loadingTask.promise;
